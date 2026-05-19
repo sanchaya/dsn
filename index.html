@@ -107,6 +107,10 @@
                     <li><a href="#" data-level="any" class="active">All</a></li>
                 </ul>
             </div>
+            <div class="span12 row-fluid" style="margin-top:8px;">
+                <p class="span1">Search :</p>
+                <input type="text" id="searchBooks" placeholder="ಹುಡುಕಿ..." class="search-input">
+            </div>
         </div>
 
         <!-- ////////// WRAPPER BOOKS -->
@@ -128,7 +132,7 @@
 
         <script type="text/javascript">
     (function() {
-        var $filterBy, $issuesWrap, $reader, $readerFrame,
+        var $filterBy, $issuesWrap, $reader, $readerFrame, $searchBooks,
             currentFilter = 'any';
 
         function getYears(books) {
@@ -156,15 +160,30 @@
             });
         }
 
-        function filterBooks(level) {
-            if (level === 'any') {
-                $('.booksection').show();
-            } else {
-                $('.booksection').hide();
-                $('.booksection.' + level).show();
-            }
-            currentFilter = level;
+        function applyFilters() {
+            $('.booksection').each(function() {
+                var $book = $(this);
+                var levelMatch = currentFilter === 'any' || $book.hasClass(String(currentFilter));
+                var searchMatch = !currentQuery;
+                if (currentQuery) {
+                    var q = currentQuery.toLowerCase();
+                    searchMatch =
+                        $book.find('h2').text().toLowerCase().indexOf(q) !== -1 ||
+                        $book.find('h3').text().toLowerCase().indexOf(q) !== -1 ||
+                        $book.find('.description').text().toLowerCase().indexOf(q) !== -1 ||
+                        $book.find('.level').text().toLowerCase().indexOf(q) !== -1 ||
+                        ($book.data('publisher') || '').toLowerCase().indexOf(q) !== -1 ||
+                        ($book.data('tags') || '').toLowerCase().indexOf(q) !== -1;
+                }
+                if (levelMatch && searchMatch) {
+                    $book.show();
+                } else {
+                    $book.hide();
+                }
+            });
         }
+
+        var currentQuery = '';
 
         function initFilters() {
             $filterBy.on('click', 'a', function(e) {
@@ -173,7 +192,8 @@
                 if (level === currentFilter) return;
                 $filterBy.find('a').removeClass('active');
                 $(this).addClass('active');
-                filterBooks(level);
+                currentFilter = level;
+                applyFilters();
             });
         }
 
@@ -182,6 +202,7 @@
             $issuesWrap = $('#issueswrap');
             $reader = $('#bookreader');
             $readerFrame = $('#readerFrame');
+            $searchBooks = $('#searchBooks');
 
             $.getJSON('./issues.json?' + Date.now())
             .done(function(data) {
@@ -191,6 +212,10 @@
                 initFilters();
                 data.books.sort(function() { return 0.5 - Math.random(); });
                 $issuesWrap.html(Mustache.to_html($('#booktpl').html(), data));
+                $searchBooks.on('input', function() {
+                    currentQuery = $(this).val();
+                    applyFilters();
+                });
             })
             .fail(function(jqXHR, textStatus, error) {
                 console.error('Failed to load books:', textStatus, error);
@@ -218,7 +243,7 @@
     })();
     </script><script id="booktpl" type="text/template">
         {{#books}}
-         <div class="span4 booksection {{#level}}{{level}}{{/level}}{{^level}}unknown{{/level}}">
+         <div class="span4 booksection {{#level}}{{level}}{{/level}}{{^level}}unknown{{/level}}" data-publisher="{{publisher}}" data-tags="{{tags}}">
           <a class="book-link" href="{{url}}" data-identifier="{{identifier}}">
            <div class="view"> ಓದಿರಿ </div>
 
